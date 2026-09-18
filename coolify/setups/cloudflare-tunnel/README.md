@@ -1,114 +1,93 @@
-# Coolify behind Cloudflare Tunnel
+# Connect existing Coolify to an existing Cloudflare Tunnel
 
-Configure an existing Coolify installation to expose its dashboard and HTTP applications through one Cloudflare Tunnel. Coolify installation remains owned by the infrastructure script in the other repository.
+Terraform deploys a `cloudflared` Compose service and a dedicated networking project on your existing self-hosted Coolify server. Your infrastructure script installs Coolify. You manage the tunnel, routes, and DNS manually in Cloudflare.
 
-Status: configuration prepared; not deployed against a live installation. Provider versions are pinned in `versions.tf`. The connector image defaults to `cloudflare/cloudflared:2026.9.1`.
+No Cloudflare API token, account ID, zone ID, tunnel ID, or domain input is required by Terraform. The existing tunnel connector token identifies and authenticates the tunnel connection. Only the Coolify Terraform provider is used.
 
-Local validation on 2026-09-18: Terraform 1.13.5 schema validation passed, along with both mock-provider routing tests. The provider lock file is included.
+## Local configuration
 
-## Traffic and ownership
-
-```text
-https://coolify.example.com ─┐
-https://*.example.com ───────┼─ Cloudflare → tunnel → cloudflared → Coolify proxy :80
-https://example.com ────────┘                                  ├─ dashboard / WebSockets
-  (optional apex)                                             └─ applications / services
-```
-
-Terraform creates the remote tunnel configuration, proxied CNAME records, a dedicated Coolify project, and a running cloudflared Compose service. The connector uses the Linux host network, following Coolify's upstream template. It preserves the incoming hostname so Coolify's proxy selects the destination.
-
-This setup targets one server hosting both the Coolify instance and the application proxy. Additional servers need their own routing arrangement. “Everything” here means the dashboard (including API and WebSockets) and HTTP applications with configured domains; databases and SSH are not published by this HTTP wildcard.
-
-The base domain itself is optional (`route_apex = true`). Existing explicit DNS records take precedence over wildcard DNS; migrate any application records that still point elsewhere. Import existing conflicting dashboard/apex/wildcard records before applying rather than creating duplicates.
-
-## Prerequisites
-
-- Terraform >=1.7 and <2.0.
-- An existing Linux Coolify server with its proxy running. The pinned provider documents Coolify v4.1+ support; verify your installed version before applying.
-- A Coolify API token with permissions to create projects/services and `read:sensitive` for Compose configuration.
-- A reachable Coolify API URL independent of the tunnel being created, such as a private network or SSH-forwarded endpoint. Keep this connection for recovery and destruction too.
-- A Cloudflare-managed zone and an API token with account-level Tunnel Write and zone-level DNS Write permissions, scoped to the selected account/zone.
-- Outbound connectivity for cloudflared and container image pulls.
-
-The dashboard must already have its instance domain set to `https://coolify.<base_domain>` (or your configured dashboard label) in Coolify Settings. Its generated proxy routes must handle the dashboard and WebSockets. This instance setting is not managed by this Terraform configuration; set it through your bootstrap script or the existing dashboard.
-
-The default tunnel origin is HTTP on host loopback. For application domains, follow Coolify's tunnel guide: use the public HTTPS domain and disable the origin's HTTP-to-HTTPS redirect to avoid redirect loops. The dashboard proxy must likewise accept this HTTP origin traffic. If your existing proxy requires HTTPS, set `proxy_origin` to a reachable HTTPS origin with a trusted certificate; TLS verification stays enabled.
-
-Cloudflare must have an active edge certificate for the chosen hostnames. Prefer `app.example.com` under a zone apex such as `example.com`; deeper names such as `app.platform.example.com` may need additional certificate coverage. A tunnel does not provision that coverage automatically.
-
-## Configure and apply
-
-From this directory:
+Create local files once, preserving existing values:
 
 ```sh
-# Create local files once; keep existing values if these files already exist.
 (umask 077; test -e terraform.tfvars || cp terraform.tfvars.example terraform.tfvars)
 (umask 077; test -e .env || cp .env.example .env)
 chmod 600 terraform.tfvars .env
-# Edit terraform.tfvars with the five required inputs and existing tunnel ID/name.
-# Edit .env with the two API tokens. Keep tokens single-quoted.
-
-# Terraform reads terraform.tfvars automatically; load .env into this shell.
-set -a
-. ./.env
-set +a
-
-terraform init
-terraform fmt -check
-terraform validate
-terraform plan -out=setup.tfplan
-terraform apply setup.tfplan
 ```
 
-`terraform.tfvars`, plans, and local state are ignored by Git. Credentials are read by the providers from the environment. The tunnel token is sensitive but still stored in Terraform state and the Compose configuration held by Coolify. Use encrypted, access-controlled remote state for shared use; no backend is imposed before one is selected.
+In `terraform.tfvars`, set:
 
-Keep real values only in the ignored `terraform.tfvars` and `.env` files. The committed `terraform.tfvars.example` and `.env.example` contain placeholders only. Both local files use owner-only permissions (`600`). Edit tokens in `.env` rather than pasting token-bearing commands into shell history.
+- `coolify_endpoint`: existing Coolify base URL, reachable independently of the tunnel.
+- `coolify_server_uuid`: existing Linux server hosting Coolify and its proxy.
 
-Verify exclusion before committing (these commands print paths, not credentials):
+In `.env`, set:
+
+- `COOLIFY_TOKEN`: API token from your self-hosted Coolify instance, with project/service management and `read:sensitive` permissions. Enable the Coolify API.
+- `TUNNEL_TOKEN`: connector token from the Docker command for your manually created Cloudflare Tunnel.
+
+Keep the `export TF_VAR_tunnel_token="$TUNNEL_TOKEN"` line in `.env`; it passes the connector token to Terraform when sourced. Terraform does not load `.env` automatically.
+
+Optional Terraform settings are `name` (the new Coolify project name) and `cloudflared_image` (default `cloudflare/cloudflared:2026.9.1`). Coolify provider 0.1.22 is pinned and documents Coolify v4.1+ support. Terraform >=1.7 and <2.0 is required.
+
+Both actual local files are Git-ignored. Only placeholder examples are committed. Confirm with:
 
 ```sh
 git check-ignore -v .env terraform.tfvars
 git ls-files -- .env terraform.tfvars
 ```
 
-The first command should show matching ignore rules; the second must print nothing. Normal `git add` and `git push` will not include these untracked, ignored files. Do not force-add them (`git add -f`) or copy secrets into tracked files. Save plans with the ignored `.tfplan` extension; arbitrary filenames are not covered by that rule.
+The second command must return nothing. Do not force-add local files or copy real values into examples. The sensitive connector token is stored in Terraform state and Coolify's Compose configuration. Local state and `.tfplan` files are ignored; use protected remote state when sharing this setup.
 
-Cloudflare Access is not configured here. The dashboard uses Coolify's existing authentication; application authentication stays with each application. Adding Access later requires deciding who can sign in and how API clients and webhooks authenticate.
+## Manual Cloudflare and Coolify routing
 
-## Reuse a manually created tunnel
+On the existing Cloudflare Tunnel, configure published application routes for:
 
-Set `existing_tunnel_id` to its UUID and `name` to its current name in local `terraform.tfvars`. The tunnel must be remotely managed (`config_src = "cloudflare"`). Terraform will import both the tunnel and its configuration during apply; review the import and proposed changes in the plan first. Setting the ID to `null` selects creation of a new tunnel instead.
+| Hostname | Origin |
+| --- | --- |
+| `coolify.example.com` | `http://localhost:80` |
+| `*.example.com` | `http://localhost:80` |
+| `example.com` (optional) | `http://localhost:80` |
 
-The declared ingress rules replace the existing tunnel routes. Preserve any unrelated routes in configuration before applying. Existing DNS records need separate imports using their zone/record IDs; the tunnel import does not import DNS records. Once imported, the tunnel is managed by this state and will be deleted by `terraform destroy`, so review teardown carefully.
+Replace example.com with your domain. Configure matching proxied DNS records targeting `<tunnel-id>.cfargotunnel.com`, with edge certificate coverage for the hostnames. Check existing explicit DNS records, which override a wildcard. Preserve any other routes already on the tunnel.
 
-In `.env`, `CLOUDFLARE_API_TOKEN` must be a Cloudflare management API token, not the connector token. `TUNNEL_TOKEN` is an optional local place to retain your existing connector token; Terraform does not read it because it retrieves the token using the authenticated Cloudflare API. Never copy either token into an example file.
+Run the Coolify proxy on the same server as the connector. Set the Coolify instance domain to `https://coolify.example.com` so it generates dashboard and WebSocket routes; assign domains to hosted HTTP applications as well. Following Coolify's HTTP-origin tunnel guide, disable origin HTTP-to-HTTPS redirects where they cause redirect loops. Alternatively configure a verified HTTPS origin manually in Cloudflare.
 
-## Verify
+The connector uses Linux host networking, matching Coolify's upstream template, so localhost reaches the host proxy. The server needs outbound tunnel connectivity and image-pull access. Domains, certificates, route configuration, authentication policies, and Cloudflare Access remain outside this Terraform setup. The HTTP routes cover the dashboard/API/WebSockets and hosted HTTP applications; SSH and database protocols need separate configuration.
 
-1. Confirm the cloudflared service is running in Coolify and the tunnel is Healthy in Cloudflare.
-2. Open `terraform output -raw dashboard_url`; test login, live deployment logs, and the web terminal.
-3. Assign an application `https://app.<base_domain>` in Coolify and confirm it responds through the tunnel without a redirect loop.
-4. Confirm the application's DNS resolves through Cloudflare, especially if an explicit record existed before the wildcard.
-5. Re-run `terraform plan`; investigate unexpected changes before accepting the setup as validated.
+## Plan and deploy
 
-Offline routing checks (mock providers, no account mutations):
+From this directory:
 
 ```sh
-terraform test
+set -a
+. ./.env
+set +a
+terraform init
+terraform validate
+terraform plan -out=setup.tfplan
+terraform apply setup.tfplan
 ```
 
-## Updates, recovery, and teardown
+The plan should create only a Coolify project and service. If the connector already exists in Coolify, import that service/project before applying instead of deploying a duplicate. Never apply a plan proposing changes to unrelated resources.
 
-Keep the independent API endpoint in `coolify_endpoint` for all lifecycle operations. If the tunnel stops, use that endpoint to inspect/redeploy cloudflared. Changing the connector image or token changes Compose; verify the running service after apply and redeploy it in Coolify if needed. `instant_deploy` guarantees startup on creation, not every subsequent update.
+No live deployment has been performed by this repository yet. Verify after applying:
 
-Back up Terraform state and retain the independent access details. To remove this setup, run `terraform plan -destroy` followed by `terraform destroy` through the independent endpoint. This deletes the connector, its dedicated project, tunnel configuration, tunnel, and DNS records. It does not uninstall Coolify or delete applications in other projects. Keep unrelated workloads out of the dedicated networking project.
+1. The cloudflared service is running and the existing tunnel is Healthy.
+2. The dashboard domain supports login, live logs, and the web terminal.
+3. A configured application domain works without redirect loops.
+4. A subsequent Terraform plan has no unexpected changes.
+
+Offline connector checks: `terraform test` (mock provider, no account mutations).
+
+## Recovery and teardown
+
+Retain the independent Coolify endpoint for recovery, updates, and teardown. A stopped connector can be inspected/redeployed through that endpoint. After image/token changes, verify that the running service was redeployed; `instant_deploy` starts the service on creation, not necessarily on updates.
+
+`terraform destroy` removes only the managed Coolify connector and its dedicated project. Your manually created Cloudflare tunnel, routes, and DNS remain. Keep unrelated workloads out of the networking project. Back up the protected Terraform state.
 
 ## Sources
 
-- [Coolify: tunnel all resources](https://coolify.io/docs/integrations/networking/cloudflare/tunnels/all-resource)
-- [Coolify: instance settings](https://coolify.io/docs/core/instance-management/instance-settings)
-- [Coolify cloudflared Compose template](https://github.com/coollabsio/coolify/blob/main/templates/compose/cloudflared.yaml)
-- [Coolify service resource, pinned version](https://github.com/coolify-terraform/terraform-provider-coolify/blob/v0.1.22/docs/resources/service.md)
-- [Cloudflare Terraform tunnel guide](https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/deployment-guides/terraform/)
+- [Coolify service resource](https://github.com/coolify-terraform/terraform-provider-coolify/blob/v0.1.22/docs/resources/service.md)
+- [Coolify cloudflared template](https://github.com/coollabsio/coolify/blob/main/templates/compose/cloudflared.yaml)
+- [Coolify tunnel routing guide](https://coolify.io/docs/integrations/networking/cloudflare/tunnels/all-resource)
 
-Sources checked on 2026-09-18. Live reachability and installed Coolify compatibility still require deployment verification.
+Sources checked on 2026-09-18. Live routing still requires verification on your instance.

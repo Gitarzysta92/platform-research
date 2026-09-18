@@ -1,15 +1,8 @@
-coolify_endpoint      = "http://192.0.2.10:8000"
-coolify_server_uuid   = "REPLACE_WITH_EXISTING_SERVER_UUID"
-cloudflare_account_id = "REPLACE_WITH_CLOUDFLARE_ACCOUNT_ID"
-cloudflare_zone_id    = "REPLACE_WITH_CLOUDFLARE_ZONE_ID"
-base_domain           = "example.com"
+coolify_endpoint    = "http://192.0.2.10:8000"
+coolify_server_uuid = "REPLACE_WITH_EXISTING_SERVER_UUID"
 
-# Reuse the tunnel created in the Cloudflare dashboard:
-existing_tunnel_id = "REPLACE_WITH_EXISTING_TUNNEL_UUID"
-name               = "REPLACE_WITH_EXISTING_TUNNEL_NAME"
-# For a new tunnel instead, set existing_tunnel_id = null.
+# Optional Coolify settings:
+# name              = "coolify-cloudflare-tunnel"
+# cloudflared_image = "cloudflare/cloudflared:2026.9.1"
 
-# Optional:
-# dashboard_subdomain = "coolify"
-# route_apex          = true
-# proxy_origin        = "http://127.0.0.1:80"
+# Supply the connector token through .env / TF_VAR_tunnel_token, not this example.

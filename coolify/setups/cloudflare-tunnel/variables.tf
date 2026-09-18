@@ -1,5 +1,5 @@
 variable "coolify_endpoint" {
-  description = "Existing Coolify base URL reachable independently of this tunnel (no /api/v1 suffix)."
+  description = "Existing Coolify base URL reachable independently of the tunnel, without /api/v1."
   type        = string
   validation {
     condition     = can(regex("^https?://", var.coolify_endpoint))
@@ -8,73 +8,29 @@ variable "coolify_endpoint" {
 }
 
 variable "coolify_server_uuid" {
-  description = "Existing Linux Coolify server hosting both the dashboard and application proxy."
+  description = "Existing Linux Coolify server hosting the dashboard and application proxy."
   type        = string
 }
 
-variable "cloudflare_account_id" {
-  description = "Cloudflare account that will own the tunnel."
+variable "tunnel_token" {
+  description = "Connector token for the existing manually managed Cloudflare Tunnel. Supply using TF_VAR_tunnel_token."
   type        = string
-}
-
-variable "existing_tunnel_id" {
-  description = "UUID of a manually created, remotely managed tunnel to import. Null creates a new tunnel."
-  type        = string
-  default     = null
+  sensitive   = true
+  nullable    = false
   validation {
-    condition     = var.existing_tunnel_id == null ? true : can(regex("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$", var.existing_tunnel_id))
-    error_message = "Use the existing tunnel UUID, or null to create a new tunnel."
-  }
-}
-
-variable "cloudflare_zone_id" {
-  description = "Cloudflare DNS zone containing base_domain."
-  type        = string
-}
-
-variable "base_domain" {
-  description = "Domain for application hostnames, e.g. example.com. Must be inside the supplied zone."
-  type        = string
-  validation {
-    condition     = can(regex("^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$", var.base_domain))
-    error_message = "Use a lowercase domain without a scheme, wildcard, port, path, or trailing dot."
-  }
-}
-
-variable "dashboard_subdomain" {
-  description = "Single DNS label for the Coolify dashboard under base_domain."
-  type        = string
-  default     = "coolify"
-  validation {
-    condition     = can(regex("^[a-z0-9]([a-z0-9-]*[a-z0-9])?$", var.dashboard_subdomain))
-    error_message = "Use a single lowercase DNS label."
+    condition     = length(trimspace(var.tunnel_token)) > 0
+    error_message = "Supply the existing tunnel connector token."
   }
 }
 
 variable "name" {
-  description = "Name for the tunnel and the new Coolify networking project."
+  description = "Name of the new Coolify networking project (not the Cloudflare tunnel name)."
   type        = string
   default     = "coolify-cloudflare-tunnel"
 }
 
-variable "proxy_origin" {
-  description = "Coolify proxy URL as reached from the host-networked connector."
-  type        = string
-  default     = "http://127.0.0.1:80"
-  validation {
-    condition     = can(regex("^https?://", var.proxy_origin))
-    error_message = "The proxy origin must use HTTP or HTTPS."
-  }
-}
-
 variable "cloudflared_image" {
-  description = "Versioned cloudflared image; an immutable digest may also be supplied."
+  description = "Versioned cloudflared image, or an immutable image digest."
   type        = string
   default     = "cloudflare/cloudflared:2026.9.1"
-}
-
-variable "route_apex" {
-  description = "Also route base_domain itself to Coolify. Leave false if it hosts another website."
-  type        = bool
-  default     = false
 }
