@@ -41,11 +41,17 @@ Cloudflare must have an active edge certificate for the chosen hostnames. Prefer
 From this directory:
 
 ```sh
-cp terraform.tfvars.example terraform.tfvars
-# Edit terraform.tfvars with the existing server, account, zone, and domain.
-# Supply these through your shell or secret manager:
-export COOLIFY_TOKEN='...'
-export CLOUDFLARE_API_TOKEN='...'
+# Create local files once; keep existing values if these files already exist.
+(umask 077; test -e terraform.tfvars || cp terraform.tfvars.example terraform.tfvars)
+(umask 077; test -e .env || cp .env.example .env)
+chmod 600 terraform.tfvars .env
+# Edit terraform.tfvars with the five required inputs.
+# Edit .env with the two API tokens. Keep tokens single-quoted.
+
+# Terraform reads terraform.tfvars automatically; load .env into this shell.
+set -a
+. ./.env
+set +a
 
 terraform init
 terraform fmt -check
@@ -55,6 +61,17 @@ terraform apply setup.tfplan
 ```
 
 `terraform.tfvars`, plans, and local state are ignored by Git. Credentials are read by the providers from the environment. The tunnel token is sensitive but still stored in Terraform state and the Compose configuration held by Coolify. Use encrypted, access-controlled remote state for shared use; no backend is imposed before one is selected.
+
+Keep real values only in the ignored `terraform.tfvars` and `.env` files. The committed `terraform.tfvars.example` and `.env.example` contain placeholders only. Both local files use owner-only permissions (`600`). Edit tokens in `.env` rather than pasting token-bearing commands into shell history.
+
+Verify exclusion before committing (these commands print paths, not credentials):
+
+```sh
+git check-ignore -v .env terraform.tfvars
+git ls-files -- .env terraform.tfvars
+```
+
+The first command should show matching ignore rules; the second must print nothing. Normal `git add` and `git push` will not include these untracked, ignored files. Do not force-add them (`git add -f`) or copy secrets into tracked files. Save plans with the ignored `.tfplan` extension; arbitrary filenames are not covered by that rule.
 
 Cloudflare Access is not configured here. The dashboard uses Coolify's existing authentication; application authentication stays with each application. Adding Access later requires deciding who can sign in and how API clients and webhooks authenticate.
 
