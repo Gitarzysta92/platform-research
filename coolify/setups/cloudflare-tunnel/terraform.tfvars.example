@@ -4,6 +4,11 @@ cloudflare_account_id = "REPLACE_WITH_CLOUDFLARE_ACCOUNT_ID"
 cloudflare_zone_id    = "REPLACE_WITH_CLOUDFLARE_ZONE_ID"
 base_domain           = "example.com"
 
+# Reuse the tunnel created in the Cloudflare dashboard:
+existing_tunnel_id = "REPLACE_WITH_EXISTING_TUNNEL_UUID"
+name               = "REPLACE_WITH_EXISTING_TUNNEL_NAME"
+# For a new tunnel instead, set existing_tunnel_id = null.
+
 # Optional:
 # dashboard_subdomain = "coolify"
 # route_apex          = true

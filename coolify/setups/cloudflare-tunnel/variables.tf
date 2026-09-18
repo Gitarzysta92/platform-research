@@ -17,6 +17,16 @@ variable "cloudflare_account_id" {
   type        = string
 }
 
+variable "existing_tunnel_id" {
+  description = "UUID of a manually created, remotely managed tunnel to import. Null creates a new tunnel."
+  type        = string
+  default     = null
+  validation {
+    condition     = var.existing_tunnel_id == null ? true : can(regex("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$", var.existing_tunnel_id))
+    error_message = "Use the existing tunnel UUID, or null to create a new tunnel."
+  }
+}
+
 variable "cloudflare_zone_id" {
   description = "Cloudflare DNS zone containing base_domain."
   type        = string

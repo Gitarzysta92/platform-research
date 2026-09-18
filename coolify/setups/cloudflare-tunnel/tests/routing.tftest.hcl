@@ -2,6 +2,7 @@ mock_provider "cloudflare" {}
 mock_provider "coolify" {}
 
 variables {
+  existing_tunnel_id    = null
   coolify_endpoint      = "http://192.0.2.10:8000"
   coolify_server_uuid   = "550e8400-e29b-41d4-a716-446655440000"
   cloudflare_account_id = "0123456789abcdef0123456789abcdef"

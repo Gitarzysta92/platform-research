@@ -45,7 +45,7 @@ From this directory:
 (umask 077; test -e terraform.tfvars || cp terraform.tfvars.example terraform.tfvars)
 (umask 077; test -e .env || cp .env.example .env)
 chmod 600 terraform.tfvars .env
-# Edit terraform.tfvars with the five required inputs.
+# Edit terraform.tfvars with the five required inputs and existing tunnel ID/name.
 # Edit .env with the two API tokens. Keep tokens single-quoted.
 
 # Terraform reads terraform.tfvars automatically; load .env into this shell.
@@ -74,6 +74,14 @@ git ls-files -- .env terraform.tfvars
 The first command should show matching ignore rules; the second must print nothing. Normal `git add` and `git push` will not include these untracked, ignored files. Do not force-add them (`git add -f`) or copy secrets into tracked files. Save plans with the ignored `.tfplan` extension; arbitrary filenames are not covered by that rule.
 
 Cloudflare Access is not configured here. The dashboard uses Coolify's existing authentication; application authentication stays with each application. Adding Access later requires deciding who can sign in and how API clients and webhooks authenticate.
+
+## Reuse a manually created tunnel
+
+Set `existing_tunnel_id` to its UUID and `name` to its current name in local `terraform.tfvars`. The tunnel must be remotely managed (`config_src = "cloudflare"`). Terraform will import both the tunnel and its configuration during apply; review the import and proposed changes in the plan first. Setting the ID to `null` selects creation of a new tunnel instead.
+
+The declared ingress rules replace the existing tunnel routes. Preserve any unrelated routes in configuration before applying. Existing DNS records need separate imports using their zone/record IDs; the tunnel import does not import DNS records. Once imported, the tunnel is managed by this state and will be deleted by `terraform destroy`, so review teardown carefully.
+
+In `.env`, `CLOUDFLARE_API_TOKEN` must be a Cloudflare management API token, not the connector token. `TUNNEL_TOKEN` is an optional local place to retain your existing connector token; Terraform does not read it because it retrieves the token using the authenticated Cloudflare API. Never copy either token into an example file.
 
 ## Verify
 
