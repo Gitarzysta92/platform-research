@@ -1,6 +1,6 @@
 # Coolify
 
-Status: research scaffold. No environment has been declared or deployed yet.
+Status: [Cloudflare Tunnel setup](setups/cloudflare-tunnel/README.md) declared for an existing installation; not deployed yet.
 
 This folder collects reproducible Coolify setups and operational knowledge, with Terraform as the intended configuration tooling.
 

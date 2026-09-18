@@ -1,0 +1,10 @@
+coolify_endpoint      = "http://192.0.2.10:8000"
+coolify_server_uuid   = "REPLACE_WITH_EXISTING_SERVER_UUID"
+cloudflare_account_id = "REPLACE_WITH_CLOUDFLARE_ACCOUNT_ID"
+cloudflare_zone_id    = "REPLACE_WITH_CLOUDFLARE_ZONE_ID"
+base_domain           = "example.com"
+
+# Optional:
+# dashboard_subdomain = "coolify"
+# route_apex          = true
+# proxy_origin        = "http://127.0.0.1:80"
