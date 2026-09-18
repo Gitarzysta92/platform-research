@@ -6,7 +6,7 @@ Versioned platform setup declarations and a shared knowledge base for each platf
 
 | Platform | Status | Setup tooling |
 | --- | --- | --- |
-| [Coolify](coolify/README.md) | Cloudflare Tunnel configuration prepared; not deployed | [Terraform provider](https://github.com/coolify-terraform/terraform-provider-coolify) |
+| [Coolify](coolify/README.md) | Cloudflared connector deployed; manual routing pending | [Terraform provider](https://github.com/coolify-terraform/terraform-provider-coolify) |
 
 ## Organization
 

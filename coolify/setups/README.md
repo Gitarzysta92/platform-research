@@ -2,7 +2,7 @@
 
 Place each reproducible environment in its own subfolder here.
 
-- [Cloudflare Tunnel](cloudflare-tunnel/README.md): dashboard and application routing for an existing Coolify installation. Prepared, not live-validated.
+- [Cloudflare Tunnel](cloudflare-tunnel/README.md): dashboard and application routing for an existing Coolify installation. Connector deployed and connected; manual routing verification remains.
 
 Each setup should include:
 

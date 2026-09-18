@@ -1,6 +1,6 @@
 # Coolify
 
-Status: [Cloudflare Tunnel setup](setups/cloudflare-tunnel/README.md) declared for an existing installation; not deployed yet.
+Status: [Cloudflare Tunnel setup](setups/cloudflare-tunnel/README.md) deployed on an existing installation; manual routing verification remains.
 
 This folder collects reproducible Coolify setups and operational knowledge, with Terraform as the intended configuration tooling.
 

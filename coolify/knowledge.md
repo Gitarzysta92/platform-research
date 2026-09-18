@@ -25,7 +25,7 @@ These are documentation observations, not locally validated behavior. Recorded o
 
 ## Experiment log
 
-- 2026-09-18: Coolify-only connector configuration validated with Terraform 1.13.5 and the pinned provider schema. Two mock-provider tests passed for supplied-token deployment with host networking and rejection of empty tokens. No live deployment has been performed.
+- 2026-09-18: Coolify-only connector configuration validated with Terraform 1.13.5 and the pinned provider schema. Two mock-provider tests passed for supplied-token deployment with host networking and rejection of empty tokens. Subsequent live deployment created the project and connector successfully. Logs confirmed four registered Cloudflare connections and a post-apply plan found no drift. The manual tunnel routes were corrected to port 80 and now include the dashboard parent hostname in addition to the wildcard. The public dashboard and direct proxy request both return 404; Coolify instance-domain routing remains to be configured.
 
 ## Tunnel implementation notes
 

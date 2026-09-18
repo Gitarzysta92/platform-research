@@ -69,7 +69,7 @@ terraform apply setup.tfplan
 
 The plan should create only a Coolify project and service. If the connector already exists in Coolify, import that service/project before applying instead of deploying a duplicate. Never apply a plan proposing changes to unrelated resources.
 
-No live deployment has been performed by this repository yet. Verify after applying:
+Deployment verified on 2026-09-18: project and connector created, four Cloudflare connections registered, and a subsequent Terraform plan reported no changes. The tunnel routes now target the Coolify proxy on port 80, including the dashboard parent hostname. The dashboard still returns a proxy 404; its Coolify instance-domain routing needs configuration. Verify after applying:
 
 1. The cloudflared service is running and the existing tunnel is Healthy.
 2. The dashboard domain supports login, live logs, and the web terminal.
