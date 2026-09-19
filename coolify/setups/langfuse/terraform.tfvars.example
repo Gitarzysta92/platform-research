@@ -1,0 +1,5 @@
+coolify_endpoint    = "http://192.0.2.10:8000"
+coolify_server_uuid = "REPLACE_WITH_EXISTING_SERVER_UUID"
+langfuse_url        = "https://langfuse.example.com"
+media_url           = "https://langfuse-files.example.com"
+initial_user_email  = "admin@example.com"

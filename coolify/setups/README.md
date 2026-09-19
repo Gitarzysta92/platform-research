@@ -3,6 +3,7 @@
 Place each reproducible environment in its own subfolder here.
 
 - [Cloudflare Tunnel](cloudflare-tunnel/README.md): dashboard and application routing for an existing Coolify installation. Connector deployed and connected; manual routing verification remains.
+- [Langfuse](langfuse/README.md): self-hosted Langfuse and persistent dependencies on Coolify, with manual Cloudflare routes.
 
 Each setup should include:
 
